@@ -44,8 +44,6 @@ A high-performance, full-stack wealth and portfolio management application engin
 
 ```
 Equity IPO Analyser/
-├── api/                        # Vercel Serverless Function entry point
-│   └── index.js
 ├── client/                     # React 18 Frontend (Vite)
 │   ├── src/
 │   │   ├── api/client.js       # Unified API client & interceptors
@@ -63,7 +61,7 @@ Equity IPO Analyser/
 │   │   ├── services/           # Live Yahoo Finance market price service
 │   │   └── seed.js             # Initial sandbox seed data generator
 │   └── data/                   # Local SQLite storage (fallback)
-├── vercel.json                 # Vercel deployment configuration
+├── vercel.json                 # Vercel Services multi-service configuration
 └── package.json                # Root build & dependency scripts
 ```
 
@@ -135,8 +133,8 @@ Navigate to `http://localhost:5173` in your browser. Click **"Explore Interactiv
 
 ## ☁️ Cloud & Production Deployment
 
-### Option A: Vercel (Recommended Full-Stack Deployment)
-This repository includes native Vercel configuration (`vercel.json` and `api/index.js`).
+### Option A: Vercel (Recommended — Multi-Service Deployment)
+This repository includes native Vercel Services configuration (`vercel.json`) with independent `client` (Vite) and `server` (Express) services.
 
 1. Create a free database on [Turso](https://turso.tech/):
    ```bash
