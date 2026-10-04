@@ -12,8 +12,14 @@ import {
 } from 'lucide-react';
 
 export default function AuthPage() {
-  const { login, register } = useAuth();
-  const [tab, setTab] = useState('login'); // 'login' or 'register'
+  const { login, register, authInitialMode, setAuthInitialMode } = useAuth();
+  const [tab, setTab] = useState(authInitialMode || 'login'); // 'login' or 'register'
+
+  React.useEffect(() => {
+    if (authInitialMode) {
+      setTab(authInitialMode);
+    }
+  }, [authInitialMode]);
   
   // Login fields
   const [loginEmail, setLoginEmail] = useState('');

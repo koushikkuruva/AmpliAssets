@@ -171,7 +171,11 @@ function Dashboard() {
 
   return (
     <div className="app-container">
-      <Navbar />
+      <Navbar 
+        onSyncPrices={() => syncPricesMutation.mutate({ force: true })}
+        isSyncing={syncPricesMutation.isPending}
+        marketStatus={marketStatus}
+      />
 
       <main className="main-content">
         {/* Dashboard Title & Scope Indicator */}
@@ -365,6 +369,59 @@ function Dashboard() {
           />
         )}
       </main>
+
+      {/* Mobile Fixed Bottom Navigation Bar */}
+      <nav className="mobile-bottom-nav" aria-label="Mobile Navigation">
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'POWER_UP' ? 'active' : ''}`}
+          onClick={() => setActiveTab('POWER_UP')}
+          id="mobile-tab-powerup"
+        >
+          <Zap size={18} />
+          <span>⚡ Power-Up</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'EQUITY' ? 'active' : ''}`}
+          onClick={() => setActiveTab('EQUITY')}
+          id="mobile-tab-equities"
+        >
+          <Briefcase size={18} />
+          <span>📈 Equities</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'CASH' ? 'active' : ''}`}
+          onClick={() => setActiveTab('CASH')}
+          id="mobile-tab-cash"
+        >
+          <Coins size={18} />
+          <span>🏦 Cash/Chitti</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'IPO' ? 'active' : ''}`}
+          onClick={() => setActiveTab('IPO')}
+          id="mobile-tab-ipos"
+        >
+          <Lock size={18} />
+          <span>🎯 IPOs</span>
+        </button>
+
+        <button
+          type="button"
+          className={`bottom-nav-item ${activeTab === 'OVERLAP' ? 'active' : ''}`}
+          onClick={() => setActiveTab('OVERLAP')}
+          id="mobile-tab-overlap"
+        >
+          <Layers size={18} />
+          <span>🔍 Overlap</span>
+        </button>
+      </nav>
     </div>
   );
 }

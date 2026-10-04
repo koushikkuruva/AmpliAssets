@@ -55,7 +55,7 @@ export default function SummaryCards({ summary, loading, activeTab, onNavigate }
       <div className="dashboard-kpi-grid">
         {/* Total Net Worth -> POWER_UP (Portfolio Power-Up & Alpha Audit) */}
         <div 
-          className={`kpi-card ${activeTab === 'POWER_UP' ? 'active' : ''}`}
+          className={`kpi-card hero-kpi-card ${activeTab === 'POWER_UP' ? 'active' : ''}`}
           role="button"
           tabIndex={0}
           onClick={() => onNavigate && onNavigate('POWER_UP')}
@@ -74,8 +74,12 @@ export default function SummaryCards({ summary, loading, activeTab, onNavigate }
               {formatINR(summary.total_net_worth)}
             </div>
             <div className="kpi-meta">
-              <span className="badge-pill font-mono" style={{ background: 'rgba(99, 102, 241, 0.15)', color: '#a5b4fc', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
-                {formatCompactINR(summary.total_net_worth)}
+              <span className={overallPnlIsGain ? 'badge-gain font-mono' : 'badge-loss font-mono'}>
+                {overallPnlIsGain ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                {formatPct(summary.overall_pnl_pct || 0)}
+              </span>
+              <span className="font-mono" style={{ fontSize: '0.8rem', color: overallPnlIsGain ? 'var(--green-gain)' : 'var(--red-loss)' }}>
+                ({formatINR(summary.overall_pnl || 0)})
               </span>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
                 All Assets

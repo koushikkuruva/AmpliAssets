@@ -1,4 +1,5 @@
 const BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const REQUEST_TIMEOUT_MS = 12000; // 12-second client timeout to prevent infinite UI hang
 
 export async function apiRequest(endpoint, options = {}) {
   const token = localStorage.getItem('equity_token');
@@ -8,24 +9,51 @@ export async function apiRequest(endpoint, options = {}) {
     ...(options.headers || {})
   };
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
   const config = {
     ...options,
-    headers
+    headers,
+    signal: options.signal || controller.signal
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, config);
+  let response;
+  try {
+    response = await fetch(`${BASE_URL}${endpoint}`, config);
+  } catch (err) {
+    clearTimeout(timeoutId);
+    if (err.name === 'AbortError') {
+      throw new Error('Connection timed out after 12 seconds. Please check your network or server connection.');
+    }
+    throw new Error(err.message || 'Network request failed. Please verify the server is running.');
+  } finally {
+    clearTimeout(timeoutId);
+  }
+
+  // Safely parse text response to gracefully handle HTML error pages (e.g. 502/504 from proxies or Vercel)
+  const text = await response.text();
+  let data = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
 
   if (response.status === 401) {
     localStorage.removeItem('equity_token');
     window.dispatchEvent(new Event('auth-unauthorized'));
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'Session expired. Please log in again.');
+    const message = data?.error || 'Session expired or invalid credentials. Please log in again.';
+    throw new Error(message);
   }
 
-  const data = await response.json().catch(() => ({}));
-
   if (!response.ok) {
-    throw new Error(data.error || `HTTP error! Status: ${response.status}`);
+    const errorMsg = data?.error || data?.message || data?.details || (
+      text && text.length < 200 && !text.includes('<!DOCTYPE') 
+        ? text 
+        : `Server responded with status ${response.status}. Please try again.`
+    );
+    throw new Error(errorMsg);
   }
 
   return data;

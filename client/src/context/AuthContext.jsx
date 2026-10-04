@@ -58,11 +58,22 @@ export function AuthProvider({ children }) {
     return data;
   };
 
+  const [authInitialMode, setAuthInitialMode] = useState('login');
+
   const logout = () => {
     localStorage.removeItem('equity_token');
     setUser(null);
     setPortfolios([]);
     setActivePortfolioId('ALL');
+    setAuthInitialMode('login');
+  };
+
+  const startRegistrationFromSandbox = () => {
+    localStorage.removeItem('equity_token');
+    setUser(null);
+    setPortfolios([]);
+    setActivePortfolioId('ALL');
+    setAuthInitialMode('register');
   };
 
   const addProfile = async (profile_name, broker_name) => {
@@ -97,6 +108,9 @@ export function AuthProvider({ children }) {
       activePortfolioId,
       setActivePortfolioId,
       loading,
+      authInitialMode,
+      setAuthInitialMode,
+      startRegistrationFromSandbox,
       login,
       register,
       logout,
