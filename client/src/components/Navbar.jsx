@@ -253,11 +253,17 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
 
         {/* Sandbox Conversion Strip (Rendered for demo user) */}
         {isSandbox && (
-          <div className="sandbox-conversion-strip" id="sandbox-conversion-banner">
+          <div className="sandbox-conversion-strip sandbox-banner sandbox-strip" id="sandbox-conversion-banner">
             <div className="sandbox-strip-left">
-              <span className="sandbox-badge">🧪 Sandbox Preview</span>
-              <span className="sandbox-strip-desc">Viewing live sample portfolio data.</span>
-              <span className="sandbox-strip-desc-mobile">Sample Mode</span>
+              <span className="sandbox-badge sandbox-badge-desktop">
+                <span className="sandbox-badge-pulse" />
+                <span>🧪 Sandbox Preview</span>
+              </span>
+              <span className="sandbox-badge sandbox-badge-mobile">
+                <span className="sandbox-badge-pulse" />
+                <span>🧪 Sandbox Mode</span>
+              </span>
+              <span className="sandbox-strip-desc"> — Viewing live sample portfolio data</span>
             </div>
 
             <div className="sandbox-strip-actions">
@@ -269,9 +275,12 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                 title="Reset sample portfolio to initial state"
                 id="btn-strip-reset"
               >
-                <RotateCcw size={12} className={resetting ? 'animate-spin' : ''} />
-                <span>Reset Sample</span>
+                <RotateCcw size={13} className={resetting ? 'animate-spin' : ''} />
+                <span className="btn-reset-text">Reset Sample</span>
+                <span className="btn-reset-text-short">Reset</span>
               </button>
+
+              <div className="sandbox-actions-divider" />
 
               <button
                 type="button"
@@ -280,8 +289,9 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                 title="Create your free personal account"
                 id="btn-strip-register"
               >
-                <Sparkles size={13} />
-                <span>Create Free Account →</span>
+                <Sparkles size={14} className="sparkle-icon" />
+                <span className="cta-text-full">Create Free Account →</span>
+                <span className="cta-text-short">Create Account →</span>
               </button>
             </div>
           </div>
