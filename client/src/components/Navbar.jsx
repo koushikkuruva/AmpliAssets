@@ -18,16 +18,25 @@ import {
 } from 'lucide-react';
 import AddProfileModal from './AddProfileModal';
 
-export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }) {
-  const { 
-    user, 
-    portfolios, 
-    activePortfolioId, 
-    setActivePortfolioId, 
-    logout, 
-    resetSandbox,
-    startRegistrationFromSandbox 
-  } = useAuth();
+export default function Navbar({ 
+  onSyncPrices, 
+  isSyncing = false, 
+  marketStatus,
+  portfolios: propPortfolios,
+  selectedPortfolio,
+  onSelectPortfolio,
+  onOpenAddProfile,
+  onResetSandbox
+}) {
+  const auth = useAuth();
+
+  const user = auth.user;
+  const portfolios = propPortfolios || auth.portfolios || [];
+  const activePortfolioId = selectedPortfolio !== undefined ? selectedPortfolio : auth.activePortfolioId;
+  const setActivePortfolioId = onSelectPortfolio || auth.setActivePortfolioId;
+  const logout = auth.logout;
+  const resetSandbox = onResetSandbox || auth.resetSandbox;
+  const startRegistrationFromSandbox = auth.startRegistrationFromSandbox;
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -38,12 +47,16 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
   const isSandbox = user?.email === 'demo@investor.in';
 
   const handleResetSandbox = async () => {
+    if (onResetSandbox) {
+      onResetSandbox();
+      return;
+    }
     if (!window.confirm('Reset sandbox to default sample portfolio? Any custom changes made in this demo session will be restored.')) {
       return;
     }
     setResetting(true);
     try {
-      await resetSandbox();
+      await auth.resetSandbox();
       window.location.reload();
     } catch (err) {
       alert(err.message || 'Failed to reset sandbox');
@@ -304,7 +317,11 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
               className="mobile-drawer-backdrop" 
               onClick={() => setMobileMenuOpen(false)} 
             />
-            <div className="mobile-drawer" id="mobile-navigation-drawer">
+            <div 
+              className="mobile-drawer" 
+              id="mobile-navigation-drawer"
+              onClick={(e) => e.stopPropagation()}
+            >
               {/* Drawer Header */}
               <div className="mobile-drawer-header">
                 <div>
@@ -316,7 +333,11 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                 <button
                   type="button"
                   className="mobile-drawer-close"
-                  onClick={() => setMobileMenuOpen(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  aria-label="Close menu"
                 >
                   <X size={18} />
                 </button>
@@ -327,8 +348,10 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                 <div className="mobile-section-label">Select Active Demat</div>
                 <div className="mobile-portfolio-list">
                   <button
+                    type="button"
                     className={`mobile-portfolio-item ${activePortfolioId === 'ALL' ? 'active' : ''}`}
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setActivePortfolioId('ALL');
                       setMobileMenuOpen(false);
                     }}
@@ -346,8 +369,10 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                   {portfolios.map(p => (
                     <button
                       key={p.id}
+                      type="button"
                       className={`mobile-portfolio-item ${Number(activePortfolioId) === p.id ? 'active' : ''}`}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setActivePortfolioId(p.id);
                         setMobileMenuOpen(false);
                       }}
@@ -367,9 +392,11 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                 <button
                   type="button"
                   className="mobile-btn-add-profile"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setMobileMenuOpen(false);
                     setShowAddProfile(true);
+                    if (onOpenAddProfile) onOpenAddProfile();
                   }}
                   id="mobile-btn-add-profile"
                 >
@@ -395,7 +422,8 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                   <button
                     type="button"
                     className="mobile-sync-btn"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onSyncPrices();
                       setMobileMenuOpen(false);
                     }}
@@ -414,7 +442,8 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                     <button
                       type="button"
                       className="mobile-cta-register"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setMobileMenuOpen(false);
                         startRegistrationFromSandbox();
                       }}
@@ -428,7 +457,8 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                       <button
                         type="button"
                         className="mobile-subtle-btn"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setMobileMenuOpen(false);
                           handleResetSandbox();
                         }}
@@ -440,7 +470,8 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                       <button
                         type="button"
                         className="mobile-subtle-btn text-loss"
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setMobileMenuOpen(false);
                           logout();
                         }}
@@ -461,7 +492,8 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
                       type="button"
                       className="mobile-sync-btn"
                       style={{ background: 'rgba(239, 68, 68, 0.1)', borderColor: 'rgba(239, 68, 68, 0.25)', color: '#fca5a5' }}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setMobileMenuOpen(false);
                         logout();
                       }}
@@ -477,7 +509,7 @@ export default function Navbar({ onSyncPrices, isSyncing = false, marketStatus }
         )}
       </header>
 
-      {showAddProfile && (
+      {!onOpenAddProfile && showAddProfile && (
         <AddProfileModal onClose={() => setShowAddProfile(false)} />
       )}
     </>

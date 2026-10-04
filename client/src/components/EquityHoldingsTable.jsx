@@ -84,6 +84,19 @@ export default function EquityHoldingsTable({ holdings, loading, onRefresh }) {
             )}
 
             <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => setSelectedHoldingForCA(holdings?.[0])}
+              disabled={!holdings || holdings.length === 0}
+              id="btn-corp-action-modal"
+              title="Record Split, Bonus, or Demerger"
+            >
+              <GitCommit size={15} className="text-cyan" />
+              <span>Corp Action</span>
+            </button>
+
+            <button
+              type="button"
               className="btn-primary"
               onClick={() => setShowAddModal(true)}
               id="btn-add-stock-modal"
@@ -249,6 +262,7 @@ export default function EquityHoldingsTable({ holdings, loading, onRefresh }) {
       {selectedHoldingForCA && (
         <CorporateActionModal
           holding={selectedHoldingForCA}
+          holdings={holdings}
           onClose={() => setSelectedHoldingForCA(null)}
           onSuccess={onRefresh}
         />

@@ -3,7 +3,10 @@ import { api } from '../api/client';
 import { X, GitCommit, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { formatINR } from '../utils/formatters';
 
-export default function CorporateActionModal({ holding, onClose, onSuccess }) {
+export default function CorporateActionModal({ holding: initialHolding, holdings = [], onClose, onSuccess }) {
+  const [selectedStockId, setSelectedStockId] = useState(initialHolding?.id || holdings[0]?.id || '');
+  const holding = (holdings.length > 0 ? (holdings.find(h => h.id === Number(selectedStockId)) || initialHolding || holdings[0]) : initialHolding) || {};
+
   const [actionType, setActionType] = useState('SPLIT'); // 'SPLIT', 'BONUS', 'DEMERGER', 'CUSTOM'
   
   // Split params
@@ -16,8 +19,15 @@ export default function CorporateActionModal({ holding, onClose, onSuccess }) {
   const [demergerRetention, setDemergerRetention] = useState(60); // 60% retained in parent
 
   // Custom params
-  const [customQty, setCustomQty] = useState(holding.quantity);
-  const [customAvgPrice, setCustomAvgPrice] = useState(holding.avg_buy_price);
+  const [customQty, setCustomQty] = useState(holding.quantity || 0);
+  const [customAvgPrice, setCustomAvgPrice] = useState(holding.avg_buy_price || 0);
+
+  React.useEffect(() => {
+    if (holding?.quantity !== undefined) {
+      setCustomQty(holding.quantity);
+      setCustomAvgPrice(holding.avg_buy_price);
+    }
+  }, [holding?.id]);
 
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -105,6 +115,24 @@ export default function CorporateActionModal({ holding, onClose, onSuccess }) {
             {error && (
               <div style={{ padding: '0.75rem', background: 'var(--red-loss-bg)', border: '1px solid var(--red-loss-border)', borderRadius: 'var(--radius-sm)', color: 'var(--red-loss)', fontSize: '0.85rem' }}>
                 {error}
+              </div>
+            )}
+
+            {holdings.length > 1 && (
+              <div className="form-group">
+                <label className="form-label">Select Stock Holding</label>
+                <select
+                  className="form-select"
+                  value={holding?.id || ''}
+                  onChange={e => setSelectedStockId(e.target.value)}
+                  id="select-ca-stock"
+                >
+                  {holdings.map(h => (
+                    <option key={h.id} value={h.id}>
+                      {h.symbol} ({h.profile_name} - {h.broker_name}) • Qty: {h.quantity} • Buy: ₹{h.avg_buy_price}
+                    </option>
+                  ))}
+                </select>
               </div>
             )}
 
