@@ -11,23 +11,32 @@ const __dirname = path.dirname(__filename);
 
 // Database connection mode:
 // Turso Cloud: when TURSO_DATABASE_URL and TURSO_AUTH_TOKEN are supplied
-// Local SQLite fallback: local file:data/portfolio.db
-const isCloud = Boolean(process.env.TURSO_DATABASE_URL && process.env.TURSO_AUTH_TOKEN);
+// Local SQLite fallback: local file:data/portfolio.db (or file:/tmp/portfolio.db on Vercel)
+const tursoUrl = process.env.TURSO_DATABASE_URL?.trim();
+const tursoToken = process.env.TURSO_AUTH_TOKEN?.trim();
+const isCloud = Boolean(tursoUrl && tursoToken);
 
 let clientConfig;
 if (isCloud) {
   clientConfig = {
-    url: process.env.TURSO_DATABASE_URL,
-    authToken: process.env.TURSO_AUTH_TOKEN
+    url: tursoUrl,
+    authToken: tursoToken
   };
   console.log('Connecting to Turso Cloud SQLite database...');
 } else {
-  const localDbDir = path.resolve(__dirname, '../data');
-  if (!fs.existsSync(localDbDir)) {
-    fs.mkdirSync(localDbDir, { recursive: true });
+  let dbUrl = process.env.DB_PATH?.trim();
+  if (!dbUrl) {
+    if (process.env.VERCEL) {
+      // /tmp is the only writable directory on Vercel serverless
+      dbUrl = 'file:/tmp/portfolio.db';
+    } else {
+      const localDbDir = path.resolve(__dirname, '../data');
+      if (!fs.existsSync(localDbDir)) {
+        fs.mkdirSync(localDbDir, { recursive: true });
+      }
+      dbUrl = `file:${path.resolve(localDbDir, 'portfolio.db').replace(/\\/g, '/')}`;
+    }
   }
-  const defaultLocalPath = `file:${path.resolve(localDbDir, 'portfolio.db').replace(/\\/g, '/')}`;
-  const dbUrl = process.env.DB_PATH || defaultLocalPath;
   clientConfig = { url: dbUrl };
   console.log(`Connecting to local SQLite database: ${dbUrl}`);
 }
@@ -79,6 +88,8 @@ export const db = {
     return await rawClient.batch(statements);
   }
 };
+
+let isSeeding = false;
 
 export async function initDatabase() {
   await db.exec(`
@@ -165,13 +176,18 @@ export async function initDatabase() {
 
   // Auto-seed if database is freshly initialized and users table is empty
   try {
-    const userCountRow = await db.prepare('SELECT COUNT(*) as count FROM users').get();
-    if (!userCountRow || Number(userCountRow.count) === 0) {
-      console.log('Fresh database detected (0 users). Auto-seeding default sandbox environment...');
-      const { seedDatabase } = await import('./seed.js');
-      await seedDatabase();
+    if (!isSeeding) {
+      const userCountRow = await db.prepare('SELECT COUNT(*) as count FROM users').get();
+      if (!userCountRow || Number(userCountRow.count) === 0) {
+        isSeeding = true;
+        console.log('Fresh database detected (0 users). Auto-seeding default sandbox environment...');
+        const { seedDatabase } = await import('./seed.js');
+        await seedDatabase();
+        isSeeding = false;
+      }
     }
   } catch (err) {
+    isSeeding = false;
     console.warn('Auto-seed check notification:', err.message);
   }
 }

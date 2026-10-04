@@ -28,41 +28,53 @@ app.use(cors({
 }));
 app.use(express.json());
 
-// Database readiness helper (supports both long-running servers and serverless invocations)
+// Database readiness helper (with retry reset on failure)
 let dbInitialized = false;
-let initPromise = null;
+let dbInitPromise = null;
 
 export async function ensureDbReady() {
-  if (!dbInitialized) {
-    if (!initPromise) {
-      initPromise = initDatabase().then(() => {
+  if (dbInitialized) return;
+  if (!dbInitPromise) {
+    dbInitPromise = initDatabase()
+      .then(() => {
         dbInitialized = true;
+      })
+      .catch(err => {
+        dbInitPromise = null; // reset so subsequent requests can retry
+        dbInitialized = false;
+        throw err;
       });
-    }
-    await initPromise;
   }
+  await dbInitPromise;
 }
+
+// 10-second timeout wrapper to prevent infinite hangs
+const withTimeout = (promise, ms, message) => {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
 
 app.use(async (req, res, next) => {
   try {
-    await ensureDbReady();
+    await withTimeout(ensureDbReady(), 10000, 'Database initialization timed out after 10s');
     next();
   } catch (err) {
     console.error('Database initialization error:', err);
-    res.status(500).json({ error: 'Database initialization failed' });
+    return res.status(500).json({
+      error: 'Database initialization failed',
+      details: err.message
+    });
   }
 });
 
-// API Routes
-app.use('/api/auth', authRouter);
-app.use('/api/equities', equitiesRouter);
-app.use('/api/ipos', iposRouter);
-app.use('/api/mf', mfRouter);
-app.use('/api/portfolio', portfolioRouter);
-app.use('/api/overlap', overlapRouter);
-app.use('/api/cash', cashRouter);
+// Dedicated apiRouter mounted at BOTH '/api' and '/'
+// Guarantees compatibility whether Vercel preserves or strips the /api prefix
+const apiRouter = express.Router();
 
-app.get('/api/health', (req, res) => {
+apiRouter.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     service: 'Indian Equity & IPO Portfolio Analyzer API',
@@ -70,8 +82,19 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Production Static Serving & SPA Fallback
-if (process.env.NODE_ENV === 'production') {
+apiRouter.use('/auth', authRouter);
+apiRouter.use('/equities', equitiesRouter);
+apiRouter.use('/ipos', iposRouter);
+apiRouter.use('/mf', mfRouter);
+apiRouter.use('/portfolio', portfolioRouter);
+apiRouter.use('/overlap', overlapRouter);
+apiRouter.use('/cash', cashRouter);
+
+app.use('/api', apiRouter);
+app.use('/', apiRouter);
+
+// Production Static Serving & SPA Fallback (only for local full-stack production runs)
+if (process.env.NODE_ENV === 'production' && !process.env.VERCEL) {
   const clientDistPath = path.resolve(__dirname, '../../client/dist');
   app.use(express.static(clientDistPath));
 
@@ -89,7 +112,8 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-if (process.env.NODE_ENV !== 'test') {
+// Only bind server port locally; on Vercel, the app is exported directly
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
   ensureDbReady()
     .then(() => {
       app.listen(PORT, () => {
